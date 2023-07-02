@@ -3,8 +3,16 @@ const overlay = $('#overlay');
 const download = $(".image > svg");
 const dropZoneElm = $('#drop-zone');
 const mainElm = $("body > main");
+const imgPreviewElm = $("#preview-image");
+const popupWindowElm = $(".popup-image");
+const btnClose = $("#btn-close");
+const btnNext = $("#btn-next");
+const slideShow = $("#slideShow");
+const btnPrevious = $("#btn-previous");
 const REST_API_URL = "http://localhost:8080/gallery";
 const cssLoaderHtml = `<div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>`;
+let imageUrlList = [];
+let currentImageIndex = 0;
 
 loadAllImages();
 
@@ -19,6 +27,18 @@ overlay.on('click', (event)=>{
 $(document).on('keydown', (event)=>{
     if(event.key === 'Escape' && !overlay.hasClass('d-none')){
         overlay.addClass("d-none");
+    }
+
+    if(!slideShow.hasClass('d-none')){
+        if(event.key === 'Escape'){
+            btnClose.trigger('click');
+        }
+        if(event.key === 'ArrowRight'){
+            btnNext.trigger('click');
+        }
+        if(event.key === 'ArrowLeft'){
+            btnPrevious.trigger('click');
+        }
     }
 });
 
@@ -41,11 +61,46 @@ dropZoneElm.on('drop', async (eventData)=>{
 overlay.on('drop', (evt)=> evt.preventDefault());
 overlay.on('dragover', (evt)=> evt.preventDefault());
 
-mainElm.on('click', '.image:not(.loader):not(.image .download)', (evt)=>{
+
+
+mainElm.on('click', '.image:not(.loader):not(.download)', (evt)=>{
     if (!evt.target.classList.contains('download')) {
-        evt.target.requestFullscreen();
+        popupWindowElm.removeClass('d-none');
+        const imgDiv = $(evt.target).closest('.image');
+        const imageUrl = imgDiv.css('background-image').replace(/^url\(['"](.+)['"]\)/, '$1');
+
+        const selectedImgIndex = imageUrlList.findIndex((value) => value === imageUrl);
+        showPopupImage(selectedImgIndex);
     }
 });
+
+btnNext.on('click', ()=>{
+    const nextIndex = currentImageIndex + 1;
+    showPopupImage(nextIndex);
+});
+
+btnPrevious.on('click', ()=>{
+    const previousIndex = currentImageIndex - 1;
+    showPopupImage(previousIndex);
+});
+
+btnClose.on('click', (eventData)=>{
+    $(eventData.target).parent().addClass('d-none');
+});
+
+function showPopupImage(index) {
+    if (index >= imageUrlList.length) {
+        index = 0;
+    }
+
+    if (index < 0) {
+        index = imageUrlList.length - 1;
+    }
+
+    imgPreviewElm.css('background-image', `url('${imageUrlList[index]}')`);
+    currentImageIndex = index;
+
+}
 
 
 
@@ -116,6 +171,7 @@ function uploadImages(imageFiles){
 function loadAllImages(){
     const jqxhr = $.ajax(`${REST_API_URL}/images`);
     jqxhr.done((data)=>{
+        imageUrlList = data;
         data.forEach(url=>{
             const divElm = $(`<div class="image">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle download" viewBox="0 0 16 16">
@@ -129,7 +185,7 @@ function loadAllImages(){
     });
 
     jqxhr.fail(()=>{
-
+        console.log("Can't load images");
     });
 }
 
