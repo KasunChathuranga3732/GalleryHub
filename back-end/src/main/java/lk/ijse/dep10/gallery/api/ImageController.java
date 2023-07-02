@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,4 +58,27 @@ public class ImageController {
         }
         return imageUrlList;
     }
+
+
+    @GetMapping("/downloadImage/{name}")
+    public void downloadImage(@PathVariable("name") String name, HttpServletResponse response) throws IOException {
+        // Get the image file
+        String imgDirPath = servletContext.getRealPath("/images");
+        File imageFile = new File(imgDirPath , name);
+
+        // Set the headers
+        response.setContentType("image/jpeg");
+
+        // Send the image data
+        try (InputStream is = new FileInputStream(imageFile);
+             OutputStream os = response.getOutputStream()) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                System.out.println("Working");
+                os.write(buffer, 0, bytesRead);
+            }
+        }
+    }
+
 }

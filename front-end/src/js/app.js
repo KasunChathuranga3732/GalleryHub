@@ -26,7 +26,7 @@ dropZoneElm.on('dragover', (eventData)=>{
     eventData.preventDefault();
 });
 
-dropZoneElm.on('drop', (eventData)=>{
+dropZoneElm.on('drop', async (eventData)=>{
     eventData.preventDefault();
     const droppedFiles = eventData.originalEvent.dataTransfer.files;
     const imageFiles = Array.from(droppedFiles).filter(file=>file.type.startsWith("image/"));
@@ -34,20 +34,24 @@ dropZoneElm.on('drop', (eventData)=>{
     if(!imageFiles.length) return;
 
     overlay.addClass('d-none');
-    uploadImages(imageFiles);
+    await uploadImages(imageFiles);
+    await location.reload();
 });
 
 overlay.on('drop', (evt)=> evt.preventDefault());
 overlay.on('dragover', (evt)=> evt.preventDefault());
 
-mainElm.on('click', '.image:not(.loader)', (evt)=>evt.target.requestFullscreen());
+mainElm.on('click', '.image:not(.loader):not(.image .download)', (evt)=>{
+    if (!evt.target.classList.contains('download')) {
+        evt.target.requestFullscreen();
+    }
+});
 
 
 
-mainElm.on('click', '.image > svg', (eventData)=>{
-    // if($(eventData.target) !== $('.image > svg')) return;
-    // console.log('target', $(eventData.target));
-    const imgELm = $(eventData.target).parent();
+mainElm.on('click', '.image > .download', (eventData)=>{
+    const imgELm = $(eventData.target).parents('div');
+    if(imgELm === $('.image > .download')) return;
     let url = $(imgELm).css('background-image');
     let name = url.split("/");
     let fileName = name[name.length - 1].replace(/^(.+)["]\)/, '$1');
@@ -59,15 +63,22 @@ mainElm.on('click', '.image > svg', (eventData)=>{
 
 
 function downloadImage(url, fileName){
-    let link = document.createElement('a');
-    link.href = url;
-    console.log("link",link);
-    link.download = fileName;
-    // $(link).attr('target', '_blank');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 
+    fetch(`${REST_API_URL}/images/downloadImage/${fileName}`)
+        .then(response => response.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+
+            URL.revokeObjectURL(url); // Clean up the temporary URL
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
 }
 
 
@@ -75,9 +86,6 @@ function uploadImages(imageFiles){
     const formData = new FormData();
     imageFiles.forEach(imageFile =>{
         const divElm = $(`<div class="image loader">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle" viewBox="0 0 16 16">
-                                  <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/>
-                            </svg>
                         </div>`);
         divElm.append(cssLoaderHtml);
         mainElm.append(divElm);
@@ -110,10 +118,11 @@ function loadAllImages(){
     jqxhr.done((data)=>{
         data.forEach(url=>{
             const divElm = $(`<div class="image">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle" viewBox="0 0 16 16">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle download" viewBox="0 0 16 16">
                                   <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/>
                                 </svg>
                             </div>`);
+
             divElm.css('background-image', `url('${url}')`);
             mainElm.append(divElm);
         })
@@ -123,8 +132,4 @@ function loadAllImages(){
 
     });
 }
-
-
-
-
 
