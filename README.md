@@ -32,7 +32,7 @@ The GalleryHub is a web application developed using JavaScript, jQuery, and Spri
 
 ## Getting Started
 
-To get started with the Public gallery web application, follow these steps:
+To get started with the GalleryHub web application, follow these steps:
 
 1. Clone the repository: `git clone https://github.com/KasunChathuranga3732/GalleryHub.git`
 2. Set up the necessary configurations for the front-end and back-end technologies.
